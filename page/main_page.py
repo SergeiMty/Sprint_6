@@ -1,7 +1,8 @@
-from .base_page import BasePage
+import allure
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
+from .base_page import BasePage
 
 
 class MainPage(BasePage):
@@ -13,60 +14,58 @@ class MainPage(BasePage):
     # 🔹 ОБЩИЙ локатор для обеих кнопок "Заказать"
     ORDER_BUTTONS = (By.XPATH, "//button[text()='Заказать']")
 
+    # ======= НАВИГАЦИЯ =======
+    @allure.step("Открываем главную страницу самоката")
+    def open_main_page(self):
+        self.open(self.URL)
+
     # ======= КУКИ =======
+    @allure.step("Закрываем баннер с куками, если он есть")
     def accept_cookies(self):
-        """Закрываем баннер с куками, если он есть."""
         try:
-            WebDriverWait(self.driver, 5).until(
-                EC.element_to_be_clickable(self.COOKIE_ACCEPT_BUTTON)
-            ).click()
-        except Exception:
+            self.click(self.COOKIE_ACCEPT_BUTTON, timeout=5)
+        except TimeoutException:
             # если баннера нет — просто идём дальше
             pass
 
-    # ======= КНОПКИ "ЗАКАЗАТЬ" =======
+    # ======= КНОПКИ 'ЗАКАЗАТЬ' =======
+    @allure.step("Кликаем по верхней кнопке 'Заказать'")
     def click_order_button_top(self):
-        """Кликаем по верхней кнопке 'Заказать'."""
-        buttons = WebDriverWait(self.driver, 5).until(
-            EC.presence_of_all_elements_located(self.ORDER_BUTTONS)
-        )
-        # buttons — это уже список элементов
+        buttons = self.wait_for_all_present(self.ORDER_BUTTONS, timeout=5)
         buttons[0].click()
 
+    @allure.step("Кликаем по нижней кнопке 'Заказать'")
     def click_order_button_bottom(self):
-        """Кликаем по нижней кнопке 'Заказать' (если понадобится второй тест)."""
-        buttons = WebDriverWait(self.driver, 5).until(
-            EC.presence_of_all_elements_located(self.ORDER_BUTTONS)
-        )
+        buttons = self.wait_for_all_present(self.ORDER_BUTTONS, timeout=5)
         if len(buttons) < 2:
             raise AssertionError("Нижняя кнопка 'Заказать' не найдена на странице")
         buttons[1].click()
 
     # ======= FAQ =======
+    @allure.step("Получаем локатор вопроса FAQ с индексом {index}")
     def faq_question_locator(self, index: int):
         return By.ID, f"accordion__heading-{index}"
 
+    @allure.step("Получаем локатор ответа FAQ с индексом {index}")
     def faq_answer_locator(self, index: int):
         return By.ID, f"accordion__panel-{index}"
 
+    @allure.step("Кликаем по вопросу FAQ с индексом {index}")
     def click_faq_question(self, index: int):
         locator = self.faq_question_locator(index)
 
-        element = WebDriverWait(self.driver, 5).until(
-            EC.element_to_be_clickable(locator)
-        )
+        element = self.wait_for_clickable(locator, timeout=5)
 
-        self.driver.execute_script(
-            "arguments[0].scrollIntoView({block: 'center'});", element
-        )
-        self.driver.execute_script("window.scrollBy(0, -100);")
+        # вместо прямого self.driver.execute_script — методы из BasePage
+        self.scroll_into_view_center(element)
+        self.scroll_by(0, -100)
 
         element.click()
 
+    @allure.step("Получаем текст ответа FAQ с индексом {index}")
     def get_faq_answer_text(self, index: int) -> str:
         locator = self.faq_answer_locator(index)
-        element = WebDriverWait(self.driver, 5).until(
-            EC.visibility_of_element_located(locator)
-        )
-        return element.text
+        return self.get_text(locator, timeout=5)
+
+
 
