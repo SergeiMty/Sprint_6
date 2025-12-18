@@ -25,7 +25,7 @@ class TestOrderScooter:
         main = MainPage(driver)
         main.open_main_page()
         main.accept_cookies()
-        main.scroll_by(0, 600)  # чуть прокрутить до кнопки, при желании
+        main.scroll_by(0, 600)
         main.click_order_button_middle()
 
         order = OrderPage(driver)
@@ -40,9 +40,7 @@ class TestOrderScooter:
         main.open_main_page()
         main.accept_cookies()
 
-        main.click_scooter_logo()
-        # если переход в этой же вкладке, просто ждём
-        main.wait_for_url_contains("qa-scooter", timeout=5)
+        assert main.go_to_scooter_home_via_logo(), f"Не попали на главную Самоката. URL: {main.get_current_url()}"
 
     @allure.title("Переход по лого 'Яндекс' ведёт на страницу Дзен")
     def test_yandex_logo_link(self, driver):
@@ -50,7 +48,4 @@ class TestOrderScooter:
         main.open_main_page()
         main.accept_cookies()
 
-        main.click_yandex_logo()
-        # логотип открывает Дзен в новой вкладке
-        driver.switch_to.window(driver.window_handles[-1])
-        main.wait_for_url_contains("dzen.ru", timeout=10)
+        assert main.open_dzen_from_yandex_logo(), f"Не попали на Dzen. URL: {main.get_current_url()}"

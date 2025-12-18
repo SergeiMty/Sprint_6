@@ -2,6 +2,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webdriver import WebDriver
 
+
 class BasePage:
     def __init__(self, driver: WebDriver, timeout: int = 10):
         self.driver = driver
@@ -26,43 +27,49 @@ class BasePage:
         )
 
     def wait_for_all_present(self, locator, timeout: int | None = None):
-        """Ждём, пока все элементы по локатору появятся в DOM."""
+        """Ждём, пока элементы по локатору появятся в DOM."""
         return self._wait(timeout).until(
             EC.presence_of_all_elements_located(locator)
         )
 
-    # ====== БАЗОВЫЕ ДЕЙСТВИЯ С ЭЛЕМЕНТАМИ ======
+    def wait_for_invisible(self, locator, timeout: int | None = None):
+        """Ждём, пока элемент исчезнет/станет невидимым."""
+        return self._wait(timeout).until(
+            EC.invisibility_of_element_located(locator)
+        )
+
+    # ====== БАЗОВЫЕ ДЕЙСТВИЯ ======
     def click(self, locator, timeout: int | None = None):
         """Клик по элементу с ожиданием кликабельности."""
         element = self.wait_for_clickable(locator, timeout)
         element.click()
         return element
 
-    def get_text(self, locator, timeout: int | None = None) -> str:
-        """Получаем текст элемента."""
-        element = self.wait_for_visible(locator, timeout)
-        return element.text
-
-    def is_visible(self, locator, timeout: int | None = None):
-        """Возвращает элемент, если он видим (или кидает TimeoutException)."""
-        return self.wait_for_visible(locator, timeout)
-
     def send_keys(self, locator, text: str, timeout: int | None = None) -> None:
         """Вводим текст в поле."""
         elem = self.wait_for_visible(locator, timeout)
         elem.clear()
-        elem.send_keys(text)
+        elem.send_keys(str(text))
+
+    def get_text(self, locator, timeout: int | None = None) -> str:
+        """Получаем текст элемента."""
+        element = self.wait_for_visible(locator, timeout)
+        return element.text
 
     # ====== НАВИГАЦИЯ ======
     def open(self, url: str) -> None:
         """Открываем URL."""
         self.driver.get(url)
 
-    def wait_for_url_contains(self, text: str, timeout: int | None = None) -> None:
+    def wait_for_url_contains(self, text: str, timeout: int | None = None) -> bool:
         """Ждём, пока URL будет содержать указанный текст."""
-        self._wait(timeout).until(EC.url_contains(text))
+        return bool(self._wait(timeout).until(EC.url_contains(text)))
 
-    # ====== ОБЁРТКИ НАД driver.execute_script ======
+    def get_current_url(self) -> str:
+        """Текущий URL."""
+        return self.driver.current_url
+
+    # ====== JS / СКРОЛЛ ======
     def execute_script(self, script: str, *args):
         """Единая точка для любых JS-скриптов."""
         return self.driver.execute_script(script, *args)
@@ -74,10 +81,11 @@ class BasePage:
         )
 
     def scroll_by(self, x: int, y: int):
-        """Просто скролл окна на заданное количество пикселей."""
-        self.execute_script(
-            "window.scrollBy(arguments[0], arguments[1]);", x, y
-        )
+        """Скроллим окно на заданное количество пикселей."""
+        self.execute_script("window.scrollBy(arguments[0], arguments[1]);", x, y)
 
-
-
+    # ====== ВКЛАДКИ / ОКНА ======
+    def switch_to_last_window(self, timeout: int | None = None) -> None:
+        """Переключаемся на последнюю вкладку, дождавшись, что вкладок стало > 1."""
+        self._wait(timeout).until(lambda d: len(d.window_handles) > 1)
+        self.driver.switch_to.window(self.driver.window_handles[-1])

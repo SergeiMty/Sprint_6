@@ -1,4 +1,3 @@
-# page/main_page.py
 import allure
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
@@ -51,11 +50,23 @@ class MainPage(BasePage):
     def click_yandex_logo(self):
         self.click(self.YANDEX_LOGO)
 
+    # ====== СЦЕНАРНЫЕ МЕТОДЫ ДЛЯ ТЕСТОВ (чтобы не трогать driver в тестах) ======
+
+    @allure.step("Переход по лого 'Самокат' и проверка, что мы на главной")
+    def go_to_scooter_home_via_logo(self) -> bool:
+        self.click_scooter_logo()
+        return self.wait_for_url_contains("qa-scooter", timeout=5)
+
+    @allure.step("Открываем Dzen через лого 'Яндекс' и проверяем URL")
+    def open_dzen_from_yandex_logo(self) -> bool:
+        self.click_yandex_logo()
+        self.switch_to_last_window(timeout=10)
+        return self.wait_for_url_contains("dzen.ru", timeout=10)
+
     # ====== РАБОТА С FAQ ======
 
     @allure.step("Кликаем по вопросу FAQ с индексом {index}")
     def click_faq_question(self, index: int):
-        # собираем реальный локатор вида (By.ID, "accordion__heading-0")
         locator = (
             self.FAQ_QUESTION_LOCATOR[0],
             self.FAQ_QUESTION_LOCATOR[1].format(index=index),
